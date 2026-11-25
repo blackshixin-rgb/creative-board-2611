@@ -1,0 +1,56 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>素材看板</title>
+<!-- 旋钮：变化度 5，动效 1，密度 8；字阶 12/14/17/21/32；圆角 0 -->
+<style>
+:root{--bg:#F4F0E6;--paper:#FBF8F1;--fg:#1B2836;--mute:#5F6670;--line:#D8D1C0;--acc:#1D5F6E}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 14px/1.5 "PingFang SC","Microsoft YaHei",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit;background:var(--paper);border:1px solid var(--line);border-radius:0;padding:8px 12px}
+button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+button.on{background:var(--acc);border-color:var(--acc);color:var(--paper)}
+#gate{min-height:100vh;display:grid;place-content:center;gap:16px;padding:24px;text-align:center}
+#gate h1{font-size:32px;margin:0}#gate form{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}#err{color:#A8452C;min-height:24px}
+header{padding:24px 40px 16px;border-bottom:1px solid var(--line);display:flex;gap:32px;align-items:end;flex-wrap:wrap}
+h1{font-size:21px;margin:0}.k b{display:block;font-size:32px;line-height:1.2}.k span,.m{font-size:12px;color:var(--mute)}
+nav{position:sticky;top:0;z-index:2;background:var(--bg);padding:12px 40px;border-bottom:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#q{flex:1 1 200px;min-width:160px}
+main{padding:16px 40px 24px;display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(176px,1fr))}
+.c{padding:0;text-align:left;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}
+.c .p{aspect-ratio:9/12;background:#E5DECD;overflow:hidden}.c img{width:100%;height:100%;object-fit:cover;display:block}
+.c .t{padding:8px 12px 12px}.c b{font-size:17px;display:block}
+dialog{border:0;padding:0;background:var(--paper);color:var(--fg);width:min(1040px,94vw);max-height:92vh}dialog::backdrop{background:rgba(27,40,54,.7)}
+.d{display:grid;grid-template-columns:minmax(0,1fr) 340px}.v{background:var(--fg);display:grid;place-items:center;min-height:320px;color:var(--paper)}
+.v video,.v img{max-width:100%;max-height:88vh;display:block}.i{padding:24px;overflow:auto;max-height:88vh}.i b.x{font-size:32px;display:block;line-height:1.2}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:16px 0}dt{color:var(--mute)}dd{margin:0;overflow-wrap:anywhere}.h{font-size:12px;color:var(--mute);overflow-wrap:anywhere}
+#empty{padding:48px 40px;text-align:center}#cl{float:right}
+@media(max-width:760px){header,nav,main{padding-left:16px;padding-right:16px}main{grid-template-columns:repeat(2,1fr);gap:8px}.d{grid-template-columns:1fr}.v video,.v img{max-height:60vh}nav{position:static}}
+</style></head><body>
+<section id="gate"><h1>素材看板</h1><form><input id="pw" type="password" autocomplete="current-password" placeholder="访问密码" aria-label="访问密码"><button class="on">进入</button></form><div id="err" role="status"></div></section>
+<div id="app" hidden><header><h1>TikTok US 高消耗素材</h1><div class="k"><b id="kn"></b><span>条素材</span></div><div class="k"><b id="kc"></b><span>合计消耗</span></div><div class="k"><b id="ku"></b><span>合计新增</span></div><div class="m" id="note"></div></header>
+<nav><button data-t="" class="on">全部</button><button data-t="video">视频</button><button data-t="image">图片</button><select id="sc" aria-label="场景"></select><select id="lv" aria-label="起量等级"></select><select id="mo" aria-label="素材创建月份"></select><select id="so" aria-label="排序"><option value="cost">按消耗</option><option value="nu">按新增</option><option value="cpa">按单个新增成本（低到高）</option><option value="date">按创建时间</option></select><input id="q" placeholder="搜标签或素材 ID" aria-label="搜标签或素材 ID"></nav>
+<main id="g"></main><div id="empty" hidden>没有符合条件的素材</div></div>
+<dialog id="dg"><div class="d"><div class="v" id="v"></div><div class="i"><button id="cl">关闭</button><div id="i"></div></div></div></dialog>
+<script>
+const $=s=>document.querySelector(s),N=x=>Math.round(x).toLocaleString('en-US'),E=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let K,R=[],T='',cur;
+const raw=async u=>{const r=await fetch(u);if(!r.ok)throw Error('net');return new Uint8Array(await r.arrayBuffer())};
+const dec=async u=>{const b=await raw(u);return crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},K,b.slice(12))};
+const blob=async(u,t)=>URL.createObjectURL(new Blob([await dec(u)],{type:t}));
+async function enter(pw){const s=await raw('salt.bin');const m=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+K=await crypto.subtle.deriveKey({name:'PBKDF2',salt:s,iterations:600000,hash:'SHA-256'},m,{name:'AES-GCM',length:256},false,['decrypt']);
+const d=JSON.parse(new TextDecoder().decode(await dec('data.bin')));R=d.rows;$('#note').textContent=d.note;
+const sel=(id,name,f,key)=>{const c={};R.forEach(x=>c[f(x)]=(c[f(x)]||0)+1);$(id).innerHTML=`<option value="">${name}</option>`+Object.keys(c).sort(key||((a,b)=>c[b]-c[a])).map(k=>`<option value="${E(k)}">${E(k)} (${c[k]})</option>`).join('');$(id).onchange=draw};
+sel('#sc','全部场景',x=>x.scene);sel('#lv','全部等级',x=>x.lv);sel('#mo','全部创建月份',x=>x.date.slice(0,7),(a,b)=>b<a?-1:1);
+$('#so').onchange=draw;$('#q').oninput=draw;document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{T=b.dataset.t;document.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x===b));draw()});
+$('#gate').hidden=true;$('#app').hidden=false;draw()}
+$('#gate form').onsubmit=async e=>{e.preventDefault();$('#err').textContent='正在打开';try{await enter($('#pw').value.trim())}catch(x){$('#err').textContent=x.message==='net'?'文件没加载到，刷新再试':'密码不对'}};
+const io=new IntersectionObserver(es=>es.forEach(async e=>{if(!e.isIntersecting)return;io.unobserve(e.target);const im=e.target,x=R.find(r=>r.n==im.dataset.n);try{x.tu=x.tu||await blob('t/'+x.n+'.bin','image/jpeg');im.src=x.tu}catch(_){}}),{rootMargin:'400px'});
+function draw(){const q=$('#q').value.trim().toLowerCase(),s=$('#so').value,cp=x=>x.nu?x.cost/x.nu:1e12;
+const L=R.filter(x=>(!T||x.type===T)&&(!$('#sc').value||x.scene===$('#sc').value)&&(!$('#lv').value||x.lv===$('#lv').value)&&(!$('#mo').value||x.date.startsWith($('#mo').value))&&(!q||(x.id+' '+x.tags.join(' ')+' '+x.cats.join(' ')).toLowerCase().includes(q)));
+L.sort({cost:(a,b)=>b.cost-a.cost,nu:(a,b)=>b.nu-a.nu,cpa:(a,b)=>cp(a)-cp(b),date:(a,b)=>b.date<a.date?-1:1}[s]);
+$('#kn').textContent=L.length;$('#kc').textContent='$'+N(L.reduce((a,x)=>a+x.cost,0));$('#ku').textContent=N(L.reduce((a,x)=>a+x.nu,0));$('#empty').hidden=L.length>0;io.disconnect();
+$('#g').innerHTML=L.map(x=>`<button class="c" data-n="${x.n}"><div class="p"><img alt="" data-n="${x.n}"></div><div class="t"><b>$${N(x.cost)}</b><span class="m">${E(x.lv)}，${E(x.scene)}，${x.type==='video'?Math.round(x.dur)+' 秒':'图片'}</span></div></button>`).join('');
+document.querySelectorAll('#g img').forEach(i=>io.observe(i));document.querySelectorAll('.c').forEach(c=>c.onclick=()=>show(R.find(r=>r.n==c.dataset.n)))}
+async function show(x){cur=x;$('#v').textContent='加载中';$('#i').innerHTML=`<b class="x">$${N(x.cost)}</b><span class="m">今年累计消耗</span><dl><dt>新增</dt><dd>${N(x.nu)}</dd><dt>单个新增成本</dt><dd>${x.nu?'$'+(x.cost/x.nu).toFixed(2)+'（消耗除以新增）':'无'}</dd><dt>起量等级</dt><dd>${E(x.lv)}</dd><dt>对比大盘</dt><dd>${E(x.cpi)}</dd><dt>CPI 排名</dt><dd>${E(x.cr)}</dd><dt>场景</dt><dd>${E(x.scene)}</dd><dt>类型</dt><dd>${x.type==='video'?'视频 '+Math.round(x.dur)+' 秒'+(x.dur>60?'，这里播前 60 秒':''):'图片'}，${E(x.wh)}</dd><dt>创建</dt><dd>${E(x.date)}</dd><dt>分类</dt><dd>${E(x.cats.join('，'))}</dd><dt>素材 ID</dt><dd>${E(x.id)}</dd></dl><div class="h">${E(x.tags.map(t=>'#'+t).join(' '))}</div>`;$('#dg').showModal();
+try{const u=await blob('m/'+x.n+'.bin',x.type==='video'?'video/mp4':'image/jpeg');if(cur!==x||!$('#dg').open)return;$('#v').innerHTML=x.type==='video'?`<video src="${u}" controls autoplay playsinline loop></video>`:`<img src="${u}" alt="">`}catch(_){$('#v').textContent='这条没有取到素材文件'}}
+$('#cl').onclick=()=>$('#dg').close();$('#dg').onclick=e=>{if(e.target===$('#dg'))$('#dg').close()};$('#dg').onclose=()=>{$('#v').innerHTML='';cur=null};
+</script></body></html>
